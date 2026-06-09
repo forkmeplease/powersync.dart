@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'package:meta/meta.dart';
 
-import 'package:http/http.dart' as http;
 import 'package:logging/logging.dart';
 import 'package:powersync/src/abort_controller.dart';
 import 'package:powersync/src/sync/bucket_storage.dart';
@@ -284,7 +283,6 @@ Future<void> _syncIsolate(_PowerSyncDatabaseIsolateArgs args) async {
       crudUpdateTriggerStream: database
           .onChange(['ps_crud'], throttle: args.options.crudThrottleTime),
       options: args.options,
-      client: http.Client(),
       syncMutex: mutexes.mutex('sync'),
       crudMutex: mutexes.mutex('crud'),
     );

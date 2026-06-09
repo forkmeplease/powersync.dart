@@ -1,5 +1,17 @@
 import 'package:collection/collection.dart';
+import 'package:http/http.dart';
 import 'package:meta/meta.dart';
+
+/// The signature of a function creating a http [Client] to use by the PowerSync
+/// SDK.
+///
+/// PowerSync will use [Client.new] by default, but a custom factory can be used
+/// as [SyncOptions.httpClient]. This allows transforming requests and
+/// responses, e.g. to add additional headers or allow custom TLS certificates.
+///
+/// On native platforms, these functions are sent across send ports (and thus
+/// must not capture non-sendable state).
+typedef HttpClientFactory = Client Function();
 
 /// Options that affect how the sync client connects to the sync service.
 final class SyncOptions {
@@ -38,6 +50,14 @@ final class SyncOptions {
   /// This is enabled by default.
   final bool? includeDefaultStreams;
 
+  /// A function to create http clients used by the PowerSync SDK.
+  ///
+  /// Custom clients can be used to configure TLS options, inject additional
+  /// headers, or otherwise customize networking.
+  ///
+  /// Note that this function is sent across isolates on native platforms.
+  final HttpClientFactory? httpClient;
+
   const SyncOptions({
     this.crudThrottleTime,
     this.retryDelay,
@@ -45,6 +65,7 @@ final class SyncOptions {
     this.syncImplementation = SyncClientImplementation.defaultClient,
     this.includeDefaultStreams,
     this.appMetadata,
+    this.httpClient,
   });
 
   SyncOptions _copyWith({
@@ -60,6 +81,7 @@ final class SyncOptions {
       syncImplementation: syncImplementation,
       includeDefaultStreams: includeDefaultStreams,
       appMetadata: appMetadata ?? this.appMetadata,
+      httpClient: httpClient,
     );
   }
 }
@@ -109,6 +131,8 @@ extension type ResolvedSyncOptions(SyncOptions source) {
 
   bool get includeDefaultStreams => source.includeDefaultStreams ?? true;
 
+  Client createHttpClient() => source.httpClient?.call() ?? Client();
+
   (ResolvedSyncOptions, bool) applyFrom(SyncOptions other) {
     final newOptions = SyncOptions(
       crudThrottleTime: other.crudThrottleTime ?? crudThrottleTime,
@@ -118,6 +142,7 @@ extension type ResolvedSyncOptions(SyncOptions source) {
       includeDefaultStreams:
           other.includeDefaultStreams ?? includeDefaultStreams,
       appMetadata: other.appMetadata ?? appMetadata,
+      httpClient: other.httpClient ?? source.httpClient,
     );
 
     final didChange = !_mapEquality.equals(newOptions.params, params) ||

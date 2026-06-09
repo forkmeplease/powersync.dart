@@ -4,7 +4,7 @@ import 'dart:js_interop';
 import 'package:meta/meta.dart';
 import 'package:powersync/src/web/worker_utils.dart';
 import 'package:sqlite_async/web.dart';
-import 'package:web/web.dart';
+import 'package:web/web.dart' hide Client;
 
 import '../connector.dart';
 import '../database/powersync_database.dart';
@@ -37,6 +37,7 @@ class SyncWorkerHandle implements StreamingSync {
           ? EventStreamProviders.errorEvent.forTarget(worker)
           : null,
       logger: database.logger,
+      exposedHttpClient: options.httpClient?.call(),
       requestHandler: (type, payload) async {
         switch (type) {
           case SyncWorkerMessageType.requestEndpoint:
@@ -146,6 +147,7 @@ class SyncWorkerHandle implements StreamingSync {
       ResolvedSyncOptions(options),
       database.schema,
       subscriptions,
+      options.httpClient != null,
     );
   }
 
